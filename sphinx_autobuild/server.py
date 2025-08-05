@@ -24,12 +24,14 @@ class RebuildServer:
         paths: list[os.PathLike[str]],
         ignore_filter: IgnoreFilter,
         change_callback: Callable[[Sequence[Path]], None],
+        watch_step: int = 50,
     ) -> None:
         self.paths = [Path(path).resolve(strict=True) for path in paths]
         self.ignore = ignore_filter
         self.change_callback = change_callback
         self.flag = asyncio.Event()
         self.should_exit = asyncio.Event()
+        self.watch_step = watch_step
 
     @asynccontextmanager
     async def lifespan(self, _app) -> AbstractAsyncContextManager[None]:
@@ -52,6 +54,7 @@ class RebuildServer:
         async for changes in watchfiles.awatch(
             *self.paths,
             watch_filter=lambda _, path: not self.ignore(path),
+            step=self.watch_step,
         ):
             changed_paths = [Path(path).resolve() for (_, path) in changes]
             with ProcessPoolExecutor() as pool:

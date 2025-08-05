@@ -80,7 +80,9 @@ def main(argv=()):
     ]
     ignore_dirs = list(filter(None, ignore_dirs))
     ignore_handler = IgnoreFilter(ignore_dirs, args.re_ignore)
-    app = _create_app(watch_dirs, ignore_handler, builder, serve_dir, url_host)
+    app = _create_app(
+        watch_dirs, ignore_handler, builder, serve_dir, url_host, args.watch_step
+    )
 
     if not args.no_initial_build:
         show_message("Starting initial build")
@@ -96,8 +98,12 @@ def main(argv=()):
         show_message("Server ceasing operations. Cheerio!")
 
 
-def _create_app(watch_dirs, ignore_handler, builder, out_dir, url_host):
-    watcher = RebuildServer(watch_dirs, ignore_handler, change_callback=builder)
+def _create_app(
+    watch_dirs, ignore_handler, builder, out_dir, url_host, watch_step: int = 50
+):
+    watcher = RebuildServer(
+        watch_dirs, ignore_handler, change_callback=builder, watch_step=watch_step
+    )
 
     return Starlette(
         routes=[
@@ -240,6 +246,14 @@ def _add_autobuild_arguments(parser):
         metavar="COMMAND",
         default=[],
         help="additional command(s) to run after building the documentation",
+    )
+
+    group.add_argument(
+        "--watch-step",
+        dest="watch_step",
+        type=int,
+        default=50,
+        help="time to wait for new changes in milliseconds",
     )
     return group
 
